@@ -1,0 +1,43 @@
+name: Check Coverage
+
+on:
+  pull_request:
+    branches:
+      - main
+      - development
+
+jobs:
+  coverage:
+    name: Check Test Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🛠️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: 📦 Install pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+
+      - name: 📦 Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 📊 Run Tests with Coverage
+        run: pnpm test:cov
+
+      - name: 🚦 Enforce Minimum Coverage (85%)
+        run: |
+          COVERAGE=$(node -pe "require('./coverage/coverage-summary.json').total.lines.pct")
+          echo "Coverage: $COVERAGE%"
+          if (( $(echo "$COVERAGE < 85" | bc -l) )); then
+            echo "❌ Coverage is below 85%! ($COVERAGE%)"
+            exit 1
+          fi
+        continue-on-error: false
